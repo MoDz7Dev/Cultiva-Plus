@@ -1,4 +1,5 @@
-import 'package:cultiva_plus/presentation/screens/planta_detail_screen.dart';
+import 'package:cultiva_plus/presentation/screens/info_plant.dart';
+//import 'package:cultiva_plus/presentation/screens/planta_detail_screen.dart';
 import 'package:flutter/material.dart';
 
 class ScanScreen extends StatelessWidget {
@@ -33,7 +34,7 @@ class ScanScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const PlantaDetailScreen()),
+                    MaterialPageRoute(builder: (_) => const InfoPlant()),
                   );
                 },
                 icon: const Icon(Icons.search),
