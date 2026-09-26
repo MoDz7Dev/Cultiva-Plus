@@ -17,7 +17,11 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.eco, size: 96, color: Color(0xFF49149F)),
+              Image.asset(
+                'assets/images/plantita.png',
+                width: 150,
+                height: 150,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Bienvenido a Cultiva+',
