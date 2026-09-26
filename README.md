@@ -40,6 +40,92 @@ y en VS Code aparecen cientos de errores falsos del tipo
 Abre como raíz del workspace **la carpeta que contiene `pubspec.yaml`**, no una carpeta padre.
 El analysis server solo activa el proyecto Flutter cuando encuentra el `pubspec.yaml`.
 
+## Trabajo con el repositorio remoto (Git)
+
+Flujo de trabajo basado en ramas: trabajamos sobre una rama temporal (`feature/...`) y
+la integramos contra la rama **`develop`** (no se sube directo a `main`).
+
+### 1) Empezar actualizado
+
+```bash
+git checkout main
+git pull origin main
+```
+
+### 2) Crear la rama de trabajo
+
+```bash
+git checkout -b feature/login     # reemplaza feature/login por el nombre de tu rama
+```
+
+### 3) Trabajar y hacer commits pequeños
+
+```bash
+git add .
+git commit -m "agrego pantalla de login"
+git add .
+git commit -m "conecto formulario"
+```
+
+### 4) Subir la rama al remoto
+
+```bash
+git push -u origin feature/login   # -u vincula la rama local con la remota
+```
+
+### 5) Integrar la rama en `develop` (merge)
+
+```bash
+# Moverse a develop y actualizarla
+git checkout develop
+git pull origin develop
+
+# Integrar tu rama
+git merge feature/login
+
+# Subir develop actualizada al remoto
+git push origin develop
+
+# Opcional: eliminar la rama de trabajo, local y remota
+git branch -d feature/login            # la rama ya está integrada
+git push origin --delete feature/login
+```
+
+> 💡 Hacer el merge a `develop` unifica el trabajo sobre la rama de integración.
+> Si el equipo lo prefiere, en lugar de `git merge` se puede abrir un Pull Request
+> **desde** `feature/...` **hacia** `develop`.
+
+### Solución de problemas (comandos Git)
+
+| Comando | Acción | Ejemplo |
+| --- | --- | --- |
+| `git status` | Muestra el estado del repositorio: archivos modificados, nuevos y el estado del commit | `git status` |
+| `git add .` | Prepara cambios para el commit | `git add .` |
+| `git commit -m "mensaje"` | Guarda los cambios preparados con un mensaje | `git commit -m "agrego pantalla de login"` |
+| `git push -u origin rama` | Sube la rama al remoto y la vincula | `git push -u origin feature/login` |
+| `git push` | Sube los commits de la rama ya vinculada | `git push` |
+| `git pull origin main` | Trae y fusiona la rama `main` del remoto | `git pull origin main` |
+| `git pull` | Trae y fusiona la rama remota vinculada | `git pull` |
+| `git checkout -b rama` | Crea una rama nueva y se cambia a ella | `git checkout -b feature/login` |
+| `git checkout rama` | Se cambia a una rama existente | `git checkout develop` |
+| `git branch` | Lista las ramas locales | `git branch` |
+| `git branch -a` | Lista ramas locales y remotas | `git branch -a` |
+| `git fetch --all` | Descarga el estado de todas las ramas del remoto (sin fusionar) | `git fetch --all` |
+| `git merge rama` | Integra `rama` en la rama actual | `git merge feature/login` |
+| `git branch -d rama` | Elimina una rama local ya fusionada | `git branch -d feature/login` |
+| `git branch -D rama` | Elimina una rama local aunque no esté fusionada | `git branch -D feature/obsoleta` |
+| `git push origin --delete rama` | Elimina una rama en el remoto | `git push origin --delete feature/login` |
+
+**Otros comandos útiles**
+
+| Comando | Acción | Ejemplo |
+| --- | --- | --- |
+| `git log --oneline` | Muestra el historial de commits abreviado | `git log --oneline` |
+| `git diff` | Muestra los cambios sin preparar | `git diff` |
+| `git stash` | Guarda temporalmente los cambios sin commitear | `git stash` |
+| `git stash pop` | Restaura los cambios guardados con `stash` | `git stash pop` |
+| `git clone <url>` | Copia un repositorio remoto a tu máquina | `git clone https://github.com/MoDz7Dev/Cultiva-Plus.git` |
+
 ## Análisis estático y tests
 
 ```bash
