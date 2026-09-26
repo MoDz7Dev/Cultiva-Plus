@@ -15,12 +15,12 @@ class HomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Image.asset(
                 'assets/images/plantita.png',
-                width: 150,
-                height: 150,
+                width: 500,
+                height: 500,
               ),
               const SizedBox(height: 16),
               const Text(
