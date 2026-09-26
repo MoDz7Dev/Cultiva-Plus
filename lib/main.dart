@@ -1,6 +1,5 @@
 import 'package:cultiva_plus/config/theme/app_theme.dart';
-//import 'package:cultiva_plus/presentation/screens/home_screen.dart';
-import 'package:cultiva_plus/presentation/screens/info_plant.dart';
+import 'package:cultiva_plus/presentation/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 
 
@@ -16,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: AppTheme().theme(),
       debugShowCheckedModeBanner: false,
-      home: const InfoPlant(),
+      home: const HomeScreen(),
     );
   }
 }
