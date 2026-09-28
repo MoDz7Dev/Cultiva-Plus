@@ -94,7 +94,7 @@ class HomeScreen extends StatelessWidget {
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: 18,),
+                    SizedBox(height: 24,),
                     //Boton Escanea
                     SizedBox(
                       width: size.width * 0.45,
@@ -132,11 +132,11 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: -size.width * 0.22,
-              bottom: size.height * 0.18,
+              left: -size.width * 0.16,
+              bottom: size.height * 0.20,
               child: Image.asset(
                 'assets/images/plantita.png',
-                height: size.width * 1.38,
+                height: size.width * 1.30,
                 fit: BoxFit.contain,
               )
             )
