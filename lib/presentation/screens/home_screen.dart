@@ -97,7 +97,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(height: 24,),
                     //Boton Escanea
                     SizedBox(
-                      width: size.width * 0.45,
+                      width: size.width * 0.42,
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () {
@@ -122,7 +122,7 @@ class HomeScreen extends StatelessWidget {
                               width: 27,
                             ),*/
                             Icon(Icons.photo_camera, size: 25, color: Colors.white,),
-                            Text('Escanea', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),)
+                            Text('Escanea', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),)
                           ],
                         ),
                       ),
