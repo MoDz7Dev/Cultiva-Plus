@@ -44,7 +44,7 @@ class InfoPlant extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),
@@ -70,7 +70,7 @@ class InfoPlant extends StatelessWidget {
                             top: 16,
                             left: 16,
                             child: CircleAvatar(
-                              backgroundColor: Colors.black.withOpacity(0.3),
+                              backgroundColor: Colors.black.withValues(alpha: 0.3),
                               child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
                             ),
                           ),
@@ -79,7 +79,7 @@ class InfoPlant extends StatelessWidget {
                             top: 16,
                             right: 16,
                             child: CircleAvatar(
-                              backgroundColor: Colors.black.withOpacity(0.3),
+                              backgroundColor: Colors.black.withValues(alpha: 0.3),
                               child: const Icon(Icons.more_horiz, color: Colors.white, size: 24),
                             ),
                           ),
@@ -143,9 +143,9 @@ class InfoPlant extends StatelessWidget {
                             ),
                             const SizedBox(height: 24),
 
-                            // Vendedor / Contacto Principal
+                            // Perfil de la Planta
                             const Text(
-                              'Seller',
+                              'Plant Profile',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 12),
@@ -153,23 +153,24 @@ class InfoPlant extends StatelessWidget {
                               children: [
                                 const CircleAvatar(
                                   radius: 22,
-                                  backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                                  backgroundColor: Color(0xFFE8F5E9), // Fondo verde claro
+                                  child: Icon(Icons.eco, color: Colors.green), // Icono de hoja
                                 ),
                                 const SizedBox(width: 12),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
-                                      'Emily Green',
+                                      'Araceae Family',
                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                     ),
                                     const SizedBox(height: 2),
                                     Row(
                                       children: [
-                                        Icon(Icons.storefront_outlined, size: 12, color: Colors.grey[500]),
+                                        Icon(Icons.public, size: 12, color: Colors.grey[500]),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Green Haven Nursery',
+                                          'Native to Central America',
                                           style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                         ),
                                       ],
@@ -177,9 +178,9 @@ class InfoPlant extends StatelessWidget {
                                   ],
                                 ),
                                 const Spacer(),
-                                Icon(Icons.phone_outlined, color: Colors.grey[700]),
+                                Icon(Icons.water_drop_outlined, color: Colors.grey[700]),
                                 const SizedBox(width: 16),
-                                Icon(Icons.chat_bubble_outline, color: Colors.grey[700]),
+                                Icon(Icons.wb_sunny_outlined, color: Colors.grey[700]),
                               ],
                             ),
                             const SizedBox(height: 24),
@@ -193,28 +194,6 @@ class InfoPlant extends StatelessWidget {
                             Text(
                               'Monstera Deliciosa, also known as the Swiss Cheese Plant, is a species of flowering plant native to tropical forests. It is famous for its natural leaf holes and is very easy to care for indoors.',
                               style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5),
-                            ),
-                            const SizedBox(height: 30),
-
-                            // Botón de Compra/Adopción
-                            SizedBox(
-                              width: double.infinity,
-                              height: 55,
-                              child: ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFA39CFB),
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Get this plant',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                              ),
                             ),
                           ],
                         ),
