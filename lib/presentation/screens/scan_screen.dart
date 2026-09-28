@@ -1,5 +1,6 @@
 import 'package:cultiva_plus/presentation/screens/info_plant.dart';
 //import 'package:cultiva_plus/presentation/screens/planta_detail_screen.dart';
+//Inicio
 import 'package:flutter/material.dart';
 
 class ScanScreen extends StatelessWidget {
