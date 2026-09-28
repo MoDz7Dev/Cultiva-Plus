@@ -48,8 +48,9 @@ la integramos contra la rama **`develop`** (no se sube directo a `main`).
 ### 1) Empezar actualizado
 
 ```bash
-git checkout main
-git pull origin main
+git fetch --all
+git checkout develop
+git pull origin develop
 ```
 
 ### 2) Crear la rama de trabajo
