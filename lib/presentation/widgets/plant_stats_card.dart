@@ -3,8 +3,8 @@ import 'plant_action_button.dart';
 
 class PlantStatsCard extends StatelessWidget {
   final String plantName;
-  final String currentHp;
-  final String maxHp;
+  final String actualLVL; // Actualizado
+  final String maxLVL;    // Actualizado
   final String light;
   final String height;
   final String profile;
@@ -13,8 +13,8 @@ class PlantStatsCard extends StatelessWidget {
   const PlantStatsCard({
     super.key,
     required this.plantName,
-    required this.currentHp,
-    required this.maxHp,
+    required this.actualLVL,
+    required this.maxLVL,
     required this.light,
     required this.height,
     required this.profile,
@@ -24,7 +24,7 @@ class PlantStatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      transform: Matrix4.translationValues(0, -30, 0), // Sube la tarjeta para superponerse
+      // Quitamos el transform para que fluya natural con el scroll
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -34,7 +34,7 @@ class PlantStatsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Nombre y Editar (Sin género) ---
+            // --- Nombre y Editar ---
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -48,7 +48,7 @@ class PlantStatsCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // --- Barra de HP ---
+            // --- Barra de LVL ---
             Center(
               child: Column(
                 children: [
@@ -72,7 +72,7 @@ class PlantStatsCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$currentHp / $maxHp HP',
+                    '$actualLVL / $maxLVL LVL', // Texto actualizado
                     style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ],
