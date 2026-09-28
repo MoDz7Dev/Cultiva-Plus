@@ -1,5 +1,7 @@
 import 'package:cultiva_plus/presentation/screens/info_plant.dart';
+import 'package:cultiva_plus/presentation/widgets/button_common.dart';
 //import 'package:cultiva_plus/presentation/screens/planta_detail_screen.dart';
+//Inicio
 import 'package:flutter/material.dart';
 
 class ScanScreen extends StatelessWidget {
@@ -10,7 +12,9 @@ class ScanScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Escanear planta')),
+        backgroundColor: Colors.white,
       ),
+      backgroundColor: Colors.white,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -40,6 +44,7 @@ class ScanScreen extends StatelessWidget {
                 icon: const Icon(Icons.search),
                 label: const Text('Identificar (ejemplo)'),
               ),
+              CustomButton(icon: Icons.arrow_back_ios_new, onPressed: () => Navigator.pop(context))
             ],
           ),
         ),
