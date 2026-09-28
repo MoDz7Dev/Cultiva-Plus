@@ -136,6 +136,29 @@ flutter test       # debe terminar en: All tests passed!
 > ⚠️ Hoy `flutter test` **falla** porque `test/widget_test.dart` sigue siendo la plantilla del contador
 > que trae Flutter. Ver *Pendientes conocidos* al final.
 
+### Al momento de Cambios del Icono de la Aplicacion:
+```bash
+# Instalar Dependencia Flutter Launcher Icons 0.14.4 y correr script para cargado de icono
+flutter pub get
+dart run flutter_launcher_icons
+
+# Verificar instalacion del icono (Si sale hora y fecha reciente se cambio el icono)
+Get-ChildItem 'd:\Proyectos_App\cultiva_plus\android\app\src\main\res' -Recurse -Filter '*.png' | Select-Object Name, Length, LastWriteTime
+
+# Limpia todo el build
+flutter clean
+
+# Reinstala dependencias
+flutter pub get
+
+# DESINSTALA la app del dispositivo/emulador (si no funciona de manera manual)
+adb uninstall com.example.cultiva_plus
+
+# Vuelve a instalar
+flutter run
+
+```
+
 ## Solución de problemas
 
 | Síntoma | Causa | Solución |
