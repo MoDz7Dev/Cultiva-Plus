@@ -13,6 +13,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFebf2f2),
       body: SafeArea(
+        bottom: false,
         child: Stack(
           children: [
             /*Positioned(
@@ -48,11 +49,11 @@ class HomeScreen extends StatelessWidget {
               )
             ),
             Positioned(
-              bottom: size.height * 0.14,
-              left: -20,
+              bottom: size.height * 0.20,
+              left: -14,
               child: Transform.rotate(
                 angle: 0.25,
-                child: Image.asset('assets/images/plantita_verde.png', width: size.width * 1.02, color: Colors.white,),
+                child: Image.asset('assets/images/plantita_verde.png', width: size.width * 1, color: Colors.white,),
               ),
             ),
             //?==== TARJETA INFERIOR ====
@@ -61,13 +62,13 @@ class HomeScreen extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                height: size.height * 0.32,
+                height: size.height * 0.36,
                 padding: EdgeInsets.symmetric(horizontal: 28, vertical: 28),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(35),
-                    topRight: Radius.circular(35)
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40)
                   ),
                 ),
                 child: Column(
@@ -83,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.black,
                       ),
                     ),
-                    SizedBox(height: 8,),
+                    SizedBox(height: 5,),
                     Text(
                       'Olvídate de adivinar cuándo regar o abonar. Analiza las necesidades de cada una de tus plantas para cuidarlas.',
                       textAlign: TextAlign.center,
@@ -94,7 +95,7 @@ class HomeScreen extends StatelessWidget {
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: 24,),
+                    SizedBox(height: 20,),
                     //Boton Escanea
                     SizedBox(
                       width: size.width * 0.42,
@@ -113,7 +114,7 @@ class HomeScreen extends StatelessWidget {
                           backgroundColor: Color(0xFF21955D)
                         ),
                         child: Row(
-                          spacing: 20,
+                          spacing: 18,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             /*Image.asset(
@@ -127,13 +128,14 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    SizedBox(height: 28),
                   ],
                 ),
               ),
             ),
             Positioned(
               left: -size.width * 0.16,
-              bottom: size.height * 0.20,
+              bottom: size.height * 0.22,
               child: Image.asset(
                 'assets/images/plantita.png',
                 height: size.width * 1.30,
@@ -141,7 +143,7 @@ class HomeScreen extends StatelessWidget {
               )
             )
           ],
-        )
+        ),
       )
     );
   }
