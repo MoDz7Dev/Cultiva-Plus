@@ -5,6 +5,8 @@ import 'package:cultiva_plus/presentation/widgets/button_selection.dart';
 import 'package:cultiva_plus/presentation/widgets/cristal_card.dart';
 import 'package:cultiva_plus/presentation/widgets/dialog_emergent.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';   // necesario para File(...)
+
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -12,8 +14,10 @@ class ScanScreen extends StatefulWidget {
   @override
   State<ScanScreen> createState() => _ScanScreenState();
 }
+/// Pasos del analisis que se muestran bajo la caja de captura.
+enum PasoAnalisis { imagen, buscando, analizando, listo } //-> agregar mas si se agrega mas texto
 
-class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
+class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   // ─── Campos de estado ───────────────────────────────────────────
   List<CameraDescription> _cameras = [];
   CameraController? _controller;
@@ -23,22 +27,71 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   CameraDescription? _camaraActual;
   bool _pausado = false;
   int _opcionSeleccionada = 0;   // 0 = "Identificar Planta" por defecto
+  String? _rutaFoto;      // ruta de la foto capturada (freeze frame)
+  bool _analizando = false;   // hay un analisis en curso
+  PasoAnalisis _paso = PasoAnalisis.buscando;
 
+    // ─── Animacion del HUD ───
+  bool _hudVisible = true;
+  late final AnimationController _hudCtrl;
+  late final Animation<double> _hudOffset;
+  int _analisisId = 0;   // descarta resultados viejos
+    // ─── Linea del escaner ───
+  late final AnimationController _lineaCtrl;
+  late final Animation<double> _lineaAnim;   // 0.0 -> 1.0 (arriba -> abajo)
 
   // ─── Ciclo de vida ──────────────────────────────────────────────
   @override
-  void initState() {
+    void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // 1 = HUD visible, 0 = HUD oculto.
+    _hudCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      value: 1,
+    );
+    _hudOffset = CurvedAnimation(
+      parent: _hudCtrl,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    // Línea del escáner: barre de arriba a abajo en bucle.
+    _lineaCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _lineaAnim = CurvedAnimation(
+      parent: _lineaCtrl,
+      curve: Curves.easeInOut,
+    );
+
     _inicializarCamara();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _hudCtrl.dispose();          // siempre antes de super.dispose()
+    _lineaCtrl.dispose();        // libera el ticker del escaner
     _liberarController();        // ya hace null + dispose
     super.dispose();
   }
+
+  // Muestra u oculta el HUD. No usa setState: el AnimatedBuilder
+  // escucha _hudCtrl y se reconstruye solo.
+  void _cambiarHud(bool visible) {
+    if (_hudVisible == visible) return;
+    _hudVisible = visible;
+    if (visible) {
+      _hudCtrl.forward();
+    } else {
+      _hudCtrl.reverse();
+    }
+  }
+
 
   
   @override
@@ -114,7 +167,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _cerrarCamara() async {
-    _camaraActual = null;        // ← limpia la intención: no reabrir
+    _camaraActual = null;        // limpia la intención: no reabrir
     _pausado = false;
     _liberarController();
   }
@@ -161,7 +214,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     final descripcion = _camaraActual;
     if (descripcion == null || !mounted) return;
 
-    setState(() => _cargando = true);   // ← muestra el spinner durante los ~330ms
+    setState(() => _cargando = true);   // muestra el spinner durante los ~330ms
 
     try {
       final nuevoController = CameraController(
@@ -231,8 +284,21 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _capturando = false);
 
-      // TODO: enviar `foto` al análisis (IA/API) cuando esté listo.
-      debugPrint('Foto capturada en: ${foto.path}');
+      // Congelamos la imagen: al pintar este archivo encima del preview
+      // la camara "se detiene" visualmente.
+      final idActual = ++_analisisId;
+
+      setState(() {
+        _rutaFoto = foto.path;
+        _analizando = true;
+        _paso = PasoAnalisis.buscando;
+      });
+      _cambiarHud(false);       // oculta el HUD con animacion
+      _lineaCtrl.repeat(reverse: true);
+
+      // Simulacion provisional. Aqui ira la llamada real a la IA.
+      _simularAnalisis(idActual);
+
     } on CameraException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -241,6 +307,83 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       });
     }
   }
+
+  /// Simula el analisis con la IA mientras no hay backend.
+  /// El id sirve para descartar respuestas de capturas antiguas.
+  Future<void> _simularAnalisis(int id) async {
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted || id != _analisisId) return;   // respuesta vieja, se ignora
+
+    setState(() => _paso = PasoAnalisis.analizando);
+
+    await Future.delayed(const Duration(milliseconds: 2200));
+    if (!mounted || id != _analisisId) return;
+
+    _lineaCtrl.stop();
+    _lineaCtrl.reset();
+    setState(() {
+      _paso = PasoAnalisis.listo;
+      _analizando = false;
+    });
+  }
+
+  /// Una fila de la lista de progreso.
+  ///   completo  -> check verde
+  ///   activo    -> spinner blanco
+  ///   pendiente -> circulo gris
+  Widget _filaPaso(String titulo, bool completo, bool activo) {
+    final Color colorTexto = completo || activo
+        ? Colors.white
+        : Colors.white.withValues(alpha: 0.45);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 6,
+        children: [
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: completo
+                ? TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.elasticOut,     // rebote de "logrado"
+                    builder: (context, v, child) =>
+                        Transform.scale(scale: v, child: child),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF7CFFB2),
+                      size: 22,
+                    ),
+                  )
+                : activo
+                    ? const CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      )
+                    : Icon(
+                        Icons.circle_outlined,
+                        size: 22,
+                        color: Colors.white.withValues(alpha: 0.35),
+                      ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            titulo,
+            style: TextStyle(
+              color: colorTexto,
+              fontSize: 18,
+              fontWeight: completo ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   // ─── UI ────────────────────────────────────────────────────────
   @override
@@ -268,6 +411,16 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
             const Positioned.fill(
               child: Center(
                 child: Icon(Icons.photo_camera, size: 70, color: Colors.white24),
+              ),
+            ),
+
+          // Freeze Frame: tapa la camara en vivo tras disparar.
+          if (_rutaFoto != null)
+            Positioned.fill(
+              child: Image.file(
+                File(_rutaFoto!),
+                fit: BoxFit.cover,
+                gaplessPlayback: true,   // evita el flash blanco al decodificar
               ),
             ),
 
@@ -305,15 +458,140 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-          
+
+
+          // ─── Progreso del analisis  ───
+          if (_rutaFoto != null)
+            Positioned(
+              bottom: size.height * 0.09,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _filaPaso(
+                      'Analizando Imagen',
+                      _paso != PasoAnalisis.imagen,
+                      _paso == PasoAnalisis.imagen,
+                    ),
+                    _filaPaso(
+                      'Identificando Planta',
+                      _paso == PasoAnalisis.analizando || _paso == PasoAnalisis.listo,
+                      _paso == PasoAnalisis.buscando,
+                    ),
+                    _filaPaso(
+                      'Analizando planta',
+                      _paso == PasoAnalisis.listo,
+                      _paso == PasoAnalisis.analizando,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // CULTIVA +
           Positioned(
-            bottom: size.height * 0.3,
-            left: size.width * 0.06,
+            top: 12,
+            left: size.width * 0.34,
             child: SafeArea(
-              child: Image.asset('assets/images/capturador_delgado.png', width: size.width * 0.88,),
-            )
+              child: Image.asset('assets/images/cultiva_+_blanco.png', width: size.width * 0.35,)
+            ),
           ),
-          
+
+          // CAPTURADOR + ESCANNER
+          Positioned(
+            bottom: _analizando ? size.height * 0.30 : size.height * 0.30,
+            left: size.width * 0.07,
+            child: SafeArea(
+              child: SizedBox(
+                width: size.width * 0.85,
+                // Altura de la caja: ajústala si tus esquinas son más
+                // altas o bajas (mira cuánto mide el PNG en proporcion).
+                height: size.width * 0.90,
+                child: Stack(
+                  children: [
+                    // 1) Las esquinas de la caja.
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/images/capturador_delgado.png',
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+
+                    // 2) La linea del escaner, recortada a la caja.
+                    if (_analizando)
+                      Positioned.fill(
+                        child: ClipRect(
+                          child: AnimatedBuilder(
+                            animation: _lineaAnim,
+                            builder: (context, child) {
+                              // 0.0 = arriba · 1.0 = abajo
+                              final y = _lineaAnim.value;
+                              return Align(
+                                alignment: Alignment(0, y * 2 - 1),
+                                child: child,
+                              );
+                            },
+                            child: Container(
+                              height: 5,
+                              margin: const EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(2),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    const Color(0xFFFBFCFB).withValues(alpha: 0.0),
+                                    const Color(0xFFB0F1CB).withValues(alpha: 0.35),
+                                    const Color(0xFFFDFFFE),
+                                  ],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFFDFFFE).withValues(alpha: 0.9),
+                                    blurRadius: 18,
+                                    spreadRadius: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ═══ HUD animado (caja, panel, botones, logo y disparador) ═══
+          // Capas de dentro hacia fuera:
+          //   AnimatedBuilder -> escucha la animacion
+          //   Opacity + Transform.translate -> se desvanece y baja
+          //   IgnorePointer -> deja de recibir toques al estar oculto
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _hudOffset,
+              builder: (context, child) {
+                final t = _hudOffset.value;   // 0 = oculto · 1 = visible
+                return Opacity(
+                  opacity: t,
+                  child: Transform.translate(
+                    // El HUD baja un 12% de la pantalla al ocultarse.
+                    offset: Offset(0, (1 - t) * size.height * 0.12),
+                    child: child,
+                  ),
+                );
+              },
+              // El hijo se construye una sola vez y se reutiliza
+              // en cada frame de la animacion.
+              child: IgnorePointer(
+                // CRITICO: sin esto, con el HUD invisible los botones
+                // siguen recibiendo pulsaciones.
+                ignoring: !_hudVisible,
+                child: Stack(
+                  children: [
           Positioned(
             bottom: 0,
             left: -30,
@@ -335,7 +613,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 sizeIcon: 25,
                 sizeButton: 55,
                 onPressed: () async {
-                  final navigator = Navigator.of(context);   // ← capturado ANTES del await
+                  final navigator = Navigator.of(context);   // capturado ANTES del await
                   // Cerramos la cámara explícitamente ANTES de navegar
                   await _cerrarCamara();
                   // Ahora sí salimos
@@ -359,14 +637,6 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          // CULTIVA +
-          Positioned(
-            top: 12,
-            left: size.width * 0.34,
-            child: SafeArea(
-              child: Image.asset('assets/images/cultiva_+_blanco.png', width: size.width * 0.35,)
-            ),
-          ),
 
           // Barra inferior con el disparador.
           if (controller != null && controller.value.isInitialized)
@@ -382,11 +652,11 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                         'Encuadra tu planta',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 60),
                       // -----FILA DE OPCIONES ----
                       SizedBox(
                         height: 50,
@@ -466,7 +736,12 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-          
+                  ],
+                ),
+              ),
+            ),
+          ),
+
 
         ],
       ),

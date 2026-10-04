@@ -1,4 +1,4 @@
-//import 'package:cultiva_plus/presentation/screens/scan_screen.dart';
+//import 'package:cultiva_plus/presentation/screens/info_plant.dart';
 import 'package:cultiva_plus/presentation/screens/scan_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -68,7 +68,7 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40)
+                    topRight: Radius.circular(40),
                   ),
                 ),
                 child: Column(
@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(height: 20,),
                     //Boton Escanea
                     SizedBox(
-                      width: size.width * 0.42,
+                      width: size.width * 0.44,
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () {
