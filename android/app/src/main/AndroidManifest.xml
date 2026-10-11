@@ -2,6 +2,9 @@
 <!-- PERMISOS PARA EL USO DE CAMARA -->
 <uses-permission android:name="android.permission.CAMERA" />
 
+<!-- INTERNET: la app habla con el backend de Cultiva+ (Pl@ntNet + Trefle) -->
+<uses-permission android:name="android.permission.INTERNET" />
+
 <!-- Declara que el hardware de cámara es OPCIONAL para que la app
      siga siendo instalable en tablets/emuladores sin cámara.. -->
 <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -10,7 +13,8 @@
     <application
         android:label="Cultiva +"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

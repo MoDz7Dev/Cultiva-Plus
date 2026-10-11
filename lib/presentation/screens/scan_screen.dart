@@ -4,6 +4,9 @@ import 'package:cultiva_plus/presentation/widgets/button_common.dart';
 import 'package:cultiva_plus/presentation/widgets/button_selection.dart';
 import 'package:cultiva_plus/presentation/widgets/cristal_card.dart';
 import 'package:cultiva_plus/presentation/widgets/dialog_emergent.dart';
+import 'package:cultiva_plus/data/models/plant_identification.dart';
+import 'package:cultiva_plus/data/services/plant_api_service.dart';
+import 'package:cultiva_plus/presentation/screens/plant_result_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';   // necesario para File(...)
 
@@ -36,6 +39,9 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
   late final AnimationController _hudCtrl;
   late final Animation<double> _hudOffset;
   int _analisisId = 0;   // descarta resultados viejos
+
+  // Cliente HTTP del backend (Pl@ntNet + Trefle).
+  final PlantApiService _api = PlantApiService();
     // ─── Linea del escaner ───
   late final AnimationController _lineaCtrl;
   late final Animation<double> _lineaAnim;   // 0.0 -> 1.0 (arriba -> abajo)
@@ -77,6 +83,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
     _hudCtrl.dispose();          // siempre antes de super.dispose()
     _lineaCtrl.dispose();        // libera el ticker del escaner
     _liberarController();        // ya hace null + dispose
+    _api.dispose();              // cierra el cliente HTTP
     super.dispose();
   }
 
@@ -296,8 +303,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
       _cambiarHud(false);       // oculta el HUD con animacion
       _lineaCtrl.repeat(reverse: true);
 
-      // Simulacion provisional. Aqui ira la llamada real a la IA.
-      _simularAnalisis(idActual);
+      // Lanzamos la identificacion real contra el backend (Pl@ntNet + Trefle).
+      _analizarFoto(idActual);
 
     } on CameraException catch (error) {
       if (!mounted) return;
@@ -308,23 +315,121 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
     }
   }
 
-  /// Simula el analisis con la IA mientras no hay backend.
-  /// El id sirve para descartar respuestas de capturas antiguas.
-  Future<void> _simularAnalisis(int id) async {
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted || id != _analisisId) return;   // respuesta vieja, se ignora
+  /// Identifica la planta de verdad contra el backend:
+  ///   1. `imagen`     -> preparamos la foto y comprobamos el backend.
+  ///   2. `buscando`   -> el backend consulta Pl@ntNet.
+  ///   3. `analizando` -> el backend completa la ficha con Trefle.
+  ///   4. `listo`      -> abrimos la pantalla con el resultado.
+  /// El `id` sirve para descartar respuestas de capturas antiguas.
+  Future<void> _analizarFoto(int id) async {
+    final ruta = _rutaFoto;
+    if (ruta == null) return;
 
-    setState(() => _paso = PasoAnalisis.analizando);
+    try {
+      // ── 1. Preparamos la foto capturada ──
+      setState(() => _paso = PasoAnalisis.imagen);
+      final foto = File(ruta);
+      if (!await foto.exists()) {
+        _mostrarErrorAnalisis('No se encontró la foto capturada.');
+        return;
+      }
+      if (!mounted || id != _analisisId) return;
 
-    await Future.delayed(const Duration(milliseconds: 2200));
-    if (!mounted || id != _analisisId) return;
+      // ── 2. Comprobamos que el backend responde ──
+      await _api.verificarConexion();
+      if (!mounted || id != _analisisId) return;
+
+      // ── 3. Pl@ntNet (a través del backend) ──
+      setState(() => _paso = PasoAnalisis.buscando);
+      final identificacion = await _api.identificar(
+        foto,
+        organo: _organoParaOpcion(_opcionSeleccionada),
+      );
+      if (!mounted || id != _analisisId) return;
+
+      // ── 4. Ficha botánica en Trefle ──
+      setState(() => _paso = PasoAnalisis.analizando);
+      DetallePlanta? detalle;
+      final mejor = identificacion.mejor;
+      if (mejor != null && mejor.nombreCientifico != '—') {
+        detalle = await _api.detalle(mejor.nombreCientifico);
+      }
+      if (!mounted || id != _analisisId) return;
+
+      // ── 5. Todo listo ──
+      _lineaCtrl.stop();
+      _lineaCtrl.reset();
+      setState(() {
+        _paso = PasoAnalisis.listo;
+        _analizando = false;
+      });
+
+      // Dejamos ver el check verde antes de abrir la ficha.
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (!mounted || id != _analisisId) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PlantResultScreen(
+            fotoPath: ruta,
+            identificacion: identificacion,
+            detalle: detalle,
+          ),
+        ),
+      );
+
+      // Al volver, dejamos la cámara lista para otro escaneo.
+      if (!mounted) return;
+      setState(() {
+        _rutaFoto = null;
+        _paso = PasoAnalisis.buscando;
+      });
+      _cambiarHud(true);
+    } on PlantApiException catch (error) {
+      _mostrarErrorAnalisis(error.mensaje);
+    } catch (error) {
+      _mostrarErrorAnalisis('Ocurrió un error inesperado al analizar la imagen.');
+    }
+  }
+
+  /// Traduce la opción elegida en la barra (Planta/Hierba/Árbol/Seta)
+  /// al parámetro `organ` que entiende Pl@ntNet.
+  String _organoParaOpcion(int opcion) {
+    switch (opcion) {
+      case 1:
+        return 'leaf'; // Hierba -> hoja
+      case 2:
+        return 'bark'; // Árbol -> corteza
+      case 3:
+        return 'auto'; // Seta -> automático (hongos)
+      default:
+        return 'auto'; // Identificar Planta
+    }
+  }
+
+  /// Vuelve al estado previo (preview en vivo + HUD) y muestra el error.
+  void _mostrarErrorAnalisis(String mensaje) {
+    if (!mounted) return;
 
     _lineaCtrl.stop();
     _lineaCtrl.reset();
     setState(() {
-      _paso = PasoAnalisis.listo;
       _analizando = false;
+      _rutaFoto = null; // quitamos el freeze frame
+      _paso = PasoAnalisis.buscando;
     });
+    _cambiarHud(true); // devolvemos los controles
+
+    // Elegimos el icono según el tipo de fallo (conexión vs. identificación).
+    final bool esConexion =
+        mensaje.contains('conectar') || mensaje.contains('backend');
+
+    AvisoScanDialog.show(
+      context,
+      titulo: 'No se pudo analizar',
+      mensaje: mensaje,
+      icono: esConexion ? Icons.wifi_off_rounded : Icons.search_off_rounded,
+    );
   }
 
   /// Una fila de la lista de progreso.
