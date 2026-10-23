@@ -5,6 +5,10 @@
 <!-- INTERNET: la app habla con el backend de Cultiva+ (Pl@ntNet + Trefle) -->
 <uses-permission android:name="android.permission.INTERNET" />
 
+<!-- GALERIA: image_picker usa el selector de fotos del sistema
+     (Photo Picker en Android 13+ / ACTION_GET_CONTENT antes), que NO
+     requiere permiso de almacenamiento. Por eso no hay READ_MEDIA_IMAGES. -->
+
 <!-- Declara que el hardware de cámara es OPCIONAL para que la app
      siga siendo instalable en tablets/emuladores sin cámara.. -->
 <uses-feature android:name="android.hardware.camera" android:required="false" />

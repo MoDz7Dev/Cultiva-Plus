@@ -8,6 +8,8 @@ import 'package:cultiva_plus/data/models/plant_identification.dart';
 import 'package:cultiva_plus/data/services/plant_api_service.dart';
 import 'package:cultiva_plus/presentation/screens/plant_result_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';   // PlatformException (galeria)
+import 'package:image_picker/image_picker.dart';   // galeria del telefono
 import 'dart:io';   // necesario para File(...)
 
 
@@ -33,6 +35,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
   String? _rutaFoto;      // ruta de la foto capturada (freeze frame)
   bool _analizando = false;   // hay un analisis en curso
   PasoAnalisis _paso = PasoAnalisis.buscando;
+  bool _flashEncendido = false;    // linterna del flash encendida
+  bool _abriendoGaleria = false;   // el selector de fotos esta abierto
 
     // ─── Animacion del HUD ───
   bool _hudVisible = true;
@@ -42,6 +46,9 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
 
   // Cliente HTTP del backend (Pl@ntNet + Trefle).
   final PlantApiService _api = PlantApiService();
+
+  // Selector de imagenes del sistema (galeria).
+  final ImagePicker _galeria = ImagePicker();
     // ─── Linea del escaner ───
   late final AnimationController _lineaCtrl;
   late final Animation<double> _lineaAnim;   // 0.0 -> 1.0 (arriba -> abajo)
@@ -207,6 +214,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
         _cargando = false;
         _error = null;
       });
+      // Si el flash estaba encendido, lo volvemos a encender.
+      await _reaplicarFlash(nuevoController);
     } on CameraException catch (error) {
       nuevoController.dispose();
       if (!mounted) return;
@@ -239,6 +248,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
         _cargando = false;
         _error = null;
       });
+      // Si el flash estaba encendido, lo volvemos a encender.
+      await _reaplicarFlash(nuevoController);
     } on CameraException catch (error) {
       if (!mounted) return;
       setState(() {
@@ -278,9 +289,66 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
     }
   }
 
+  // ─── Flash (linterna) ───────────────────────────────────────────
+  /// Enciende o apaga la linterna del flash.
+  ///
+  /// Usamos [FlashMode.torch] en vez de [FlashMode.always] porque mantiene la
+  /// luz encendida MIENTRAS encuadras la planta, que es lo que se espera de un
+  /// boton de flash en un escaner (y da respuesta visual inmediata).
+  Future<void> _alternarFlash() async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    final bool encender = !_flashEncendido;
+
+    try {
+      await controller.setFlashMode(encender ? FlashMode.torch : FlashMode.off);
+      if (!mounted) return;
+      setState(() => _flashEncendido = encender);
+    } on CameraException {
+      // Hay moviles (y emuladores) que no exponen el control del flash.
+      if (!mounted) return;
+      AvisoScanDialog.show(
+        context,
+        titulo: 'Flash no disponible',
+        mensaje: 'Este dispositivo no permite controlar el flash desde la app.',
+        icono: Icons.flash_off_rounded,
+      );
+    }
+  }
+
+  /// Vuelve a aplicar el estado del flash a un controller recien abierto.
+  /// Se llama al abrir/reanudar la camara para no perder el ajuste.
+  Future<void> _reaplicarFlash(CameraController controller) async {
+    if (!_flashEncendido) return;
+    try {
+      await controller.setFlashMode(FlashMode.torch);
+    } on CameraException {
+      _flashEncendido = false;   // el dispositivo no lo soporta
+    }
+  }
+
+  /// Apaga la linterna en silencio (no avisa si el movil no puede).
+  Future<void> _apagarFlash() async {
+    if (!_flashEncendido) return;
+    _flashEncendido = false;
+
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    try {
+      await controller.setFlashMode(FlashMode.off);
+    } on CameraException {
+      // Nada: al liberar la camara la linterna se apaga igual.
+    }
+  }
+
   Future<void> _tomarFoto() async {
     final controller = _controller;
-    if (!mounted || controller == null || !controller.value.isInitialized || _capturando) {
+    if (!mounted ||
+        controller == null ||
+        !controller.value.isInitialized ||
+        _capturando ||
+        _abriendoGaleria) {
       return;
     }
 
@@ -313,6 +381,64 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
         _error = _traducirError(error);
       });
     }
+  }
+
+  /// Abre la galeria del telefono, deja elegir una foto y la analiza
+  /// EXACTAMENTE igual que si la hubieras capturado con la camara.
+  Future<void> _elegirDeGaleria() async {
+    // Evita abrir dos selectores a la vez o pisar un analisis en curso.
+    if (_capturando || _analizando || _abriendoGaleria) return;
+
+    setState(() => _abriendoGaleria = true);
+
+    XFile? elegida;
+    try {
+      elegida = await _galeria.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,   // baja el peso sin perder detalle de la hoja
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      setState(() => _abriendoGaleria = false);
+      AvisoScanDialog.show(
+        context,
+        titulo: 'No se pudo abrir la galeria',
+        mensaje: 'Revisa que Cultiva+ tenga permiso para leer tus fotos.\n\n'
+            '(${error.message ?? error.code})',
+        icono: Icons.photo_library_outlined,
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    // El usuario cerro la galeria sin elegir nada: no hacemos nada.
+    if (elegida == null) {
+      setState(() => _abriendoGaleria = false);
+      return;
+    }
+
+    final XFile fotoElegida = elegida;
+
+    // No dejamos la linterna encendida mientras se analiza.
+    await _apagarFlash();
+    if (!mounted) return;
+
+    final idActual = ++_analisisId;
+
+    setState(() {
+      _abriendoGaleria = false;
+      _rutaFoto = fotoElegida.path;   // freeze frame con la foto elegida
+      _analizando = true;
+      _paso = PasoAnalisis.buscando;
+    });
+    _cambiarHud(false);                 // oculta el HUD con animacion
+    _lineaCtrl.repeat(reverse: true);   // arranca la linea del escaner
+
+    // A partir de aqui el flujo es identico al de una foto capturada.
+    await _analizarFoto(idActual);
   }
 
   /// Identifica la planta de verdad contra el backend:
@@ -530,7 +656,10 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
             ),
 
           // Estado de carga / error.
-          if (_cargando || _error != null)
+          // Durante un analisis NO lo mostramos: manda el freeze frame. Asi,
+          // si la camara tarda en reabrirse tras elegir una foto de la
+          // galeria, no tapa el escaneo con un spinner.
+          if ((_cargando || _error != null) && !_analizando)
             Positioned.fill(
               child: Container(
                 color: Colors.black54,
@@ -788,7 +917,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
                             children: [
                               CustomButton(
                                 icon: Icons.photo_library,
-                                onPressed: () {},
+                                // Abre la galeria para escanear una foto guardada.
+                                onPressed: _elegirDeGaleria,
                                 sizeIcon: 34,
                                 sizeButton: 50,
                                 backgroundColor: Colors.transparent,
@@ -804,7 +934,9 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
                             ],
                           ),
                           IconButton(
-                            onPressed: _capturando ? null : _tomarFoto,
+                            onPressed: (_capturando || _abriendoGaleria)
+                                ? null
+                                : _tomarFoto,
                             iconSize: 72,
                             icon: _capturando
                                 ? const SizedBox(
@@ -817,15 +949,20 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver, Ti
                           Column(
                             children: [
                               CustomButton(
-                                icon: Icons.flash_on,
-                                onPressed: () {},
+                                icon: _flashEncendido
+                                    ? Icons.flash_on
+                                    : Icons.flash_off,
+                                onPressed: _alternarFlash,
                                 sizeIcon: 34,
                                 sizeButton: 50,
                                 backgroundColor: Colors.transparent,
-                                iconColor: Colors.white,
+                                // Amarillo mientras la linterna esta encendida.
+                                iconColor: _flashEncendido
+                                    ? const Color(0xFFFFD54F)
+                                    : Colors.white,
                               ),
                               Text(
-                                'Flash',
+                                _flashEncendido ? 'Flash ON' : 'Flash',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 13

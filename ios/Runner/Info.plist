@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Cultiva+ necesita la camara para fotografiar tus plantas e identificarlas.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cultiva+ necesita acceder a tus fotos para poder identificar una planta elegida desde la galeria.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
