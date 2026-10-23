@@ -1,5 +1,17 @@
+import 'package:cultiva_plus/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'plant_action_button.dart';
+import 'weather_card.dart';
+
+// ─── Colores de las acciones, derivados de la paleta de la app ────
+// (app_theme.dart). No se inventan tonos: se aclaran/oscurecen a partir
+// del verde primario [kPrimaryColor], igual que en el widget de clima.
+final Color _fertilizarFondo =
+    Color.lerp(kPrimaryColor, Colors.white, 0.90)!;
+final Color _fertilizarTexto =
+    Color.lerp(kPrimaryColor, Colors.black, 0.10)!;
+final Color _cosecharFondo = Color.lerp(kPrimaryColor, Colors.white, 0.80)!;
+final Color _cosecharTexto = Color.lerp(kPrimaryColor, Colors.black, 0.25)!;
 
 class PlantStatsCard extends StatelessWidget {
   final String plantName;
@@ -110,17 +122,30 @@ class PlantStatsCard extends StatelessWidget {
               icon: Icons.eco,
               cost1: '3,000',
               cost2: '3',
-              backgroundColor: const Color(0xFFFCE4EC),
-              textColor: const Color(0xFFC2185B),
+              backgroundColor: _fertilizarFondo,
+              textColor: _fertilizarTexto,
               onTap: () {},
             ),
             PlantActionButton(
-              title: 'PODAR',
-              icon: Icons.content_cut,
+              title: 'COSECHAR',
+              icon: Icons.agriculture,
               cost1: '25',
               cost2: '0',
-              backgroundColor: const Color(0xFFF5F5F5),
-              textColor: const Color(0xFF616161),
+              backgroundColor: _cosecharFondo,
+              textColor: _cosecharTexto,
+              onTap: () {},
+            ),
+            const SizedBox(height: 20),
+
+            // --- Clima del lugar (diseño provisional, SIN API todavía) ---
+            WeatherCard(
+              ubicacion: 'Tu ubicación',
+              temperatura: '24°',
+              condicion: 'Parcialmente nublado',
+              humedad: '65%',
+              viento: '12 km/h',
+              sensacion: '26°',
+              icono: Icons.wb_cloudy_rounded,
               onTap: () {},
             ),
             const SizedBox(height: 20),
